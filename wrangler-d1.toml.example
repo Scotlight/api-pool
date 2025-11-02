@@ -1,0 +1,12 @@
+name = "gemini-pool-system"
+main = "worker_d1.js"
+compatibility_date = "2024-01-01"
+
+# D1 数据库绑定
+# 1. 创建 D1: wrangler d1 create gemini-pool-db
+# 2. 将下面的 database_id 替换为创建时输出的 Database ID
+# 注意: 数据库表会在首次运行时自动创建，无需手动执行 SQL
+[[d1_databases]]
+binding = "DB"
+database_name = "gemini-pool-db"
+database_id = "your-database-id"

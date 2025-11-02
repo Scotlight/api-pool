@@ -1,0 +1,10 @@
+name = "gemini-pool-system"
+main = "worker_kv.js"
+compatibility_date = "2024-01-01"
+
+# KV 命名空间绑定
+# 1. 创建 KV: wrangler kv:namespace create "API_TOKENS"
+# 2. 将下面的 id 替换为创建时输出的 Namespace ID
+[[kv_namespaces]]
+binding = "API_TOKENS"
+id = "your-kv-namespace-id"
