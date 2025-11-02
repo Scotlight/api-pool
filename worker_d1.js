@@ -1,5 +1,5 @@
 // ==================== 多池隔离系统 v3.0 (D1 数据库版本) ====================
-// 自动生成于: 2025-11-02T05:39:43.155Z
+// 自动生成于: 2025-11-02T08:19:30.989Z
 // 
 // 这是一个真正的多池隔离系统 - D1 数据库版本：
 // - 多个独立的池，完全隔离
@@ -4812,20 +4812,36 @@ function generatePoolDetailHTML(poolId) {
     // 加载池详情
     async function loadPoolDetail() {
       try {
+        console.log('开始加载池详情, Pool ID:', POOL_ID);
         const response = await fetch(\`/api/pools/\${POOL_ID}\`);
+        console.log('API响应状态:', response.status);
+        
         const data = await response.json();
+        console.log('API返回数据:', data);
 
         if (data.success) {
           poolData = data.pool;
-          renderPoolDetail();
+          console.log('池数据:', poolData);
+          
+          try {
+            renderPoolDetail();
+            console.log('渲染完成');
+          } catch (renderError) {
+            console.error('渲染失败:', renderError);
+            showError('渲染失败: ' + renderError.message);
+            return;
+          }
+          
           await loadAvailableModels();  // 加载模型列表
           renderModelsDisplay();  // 渲染模型显示
           document.getElementById('loading').style.display = 'none';
           document.getElementById('pool-content').style.display = 'block';
+          console.log('页面显示完成');
         } else {
           showError('加载池详情失败: ' + data.message);
         }
       } catch (error) {
+        console.error('加载池详情异常:', error);
         showError('加载池详情失败: ' + error.message);
       }
     }
@@ -4857,19 +4873,33 @@ function generatePoolDetailHTML(poolId) {
 
     // 更新统计仪表盘显示
     function updateStatsDisplay() {
-      if (!poolData.stats) return;
+      try {
+        if (!poolData.stats) {
+          console.warn('无统计数据');
+          return;
+        }
 
-      // 计算实时指标
-      const metrics = calculatePoolMetrics(poolData);
+        // 计算实时指标
+        const metrics = calculatePoolMetrics(poolData);
+        console.log('计算的指标:', metrics);
 
-      // 更新主要指标（RPM/RPD/TPM/TPD）
-      document.getElementById('rpm').textContent = metrics.rpm || 0;
-      document.getElementById('rpd').textContent = metrics.rpd || 0;
-      document.getElementById('tpm').textContent = (metrics.tpm || 0).toLocaleString();
-      document.getElementById('tpd').textContent = (metrics.tpd || 0).toLocaleString();
+        // 更新主要指标（RPM/RPD/TPM/TPD）
+        const rpmEl = document.getElementById('rpm');
+        const rpdEl = document.getElementById('rpd');
+        const tpmEl = document.getElementById('tpm');
+        const tpdEl = document.getElementById('tpd');
+        const totalTokensEl = document.getElementById('totalTokens');
 
-      // 更新使用量统计（已移除请求记录相关的显示）
-      document.getElementById('totalTokens').textContent = (metrics.totalTokens || 0).toLocaleString();
+        if (rpmEl) rpmEl.textContent = metrics.rpm || 0;
+        if (rpdEl) rpdEl.textContent = metrics.rpd || 0;
+        if (tpmEl) tpmEl.textContent = (metrics.tpm || 0).toLocaleString();
+        if (tpdEl) tpdEl.textContent = (metrics.tpd || 0).toLocaleString();
+        if (totalTokensEl) totalTokensEl.textContent = (metrics.totalTokens || 0).toLocaleString();
+        
+        console.log('统计显示更新完成');
+      } catch (error) {
+        console.error('更新统计显示失败:', error);
+      }
     }
 
     // 客户端计算池指标（与服务端 calculatePoolMetrics 相同逻辑）
@@ -5914,6 +5944,8 @@ async function routeApiRequest(request, env) {
 
 
 // ==================== 主入口函数 ====================
+// ==================== 主入口文件 ====================
+// Cloudflare Workers 主处理程序
 
 
 /**
