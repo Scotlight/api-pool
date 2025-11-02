@@ -1,0 +1,60 @@
+﻿// ==================== 姹犵鐞嗘ā鍧?====================
+// 澶勭悊姹犵殑 CRUD 鎿嶄綔銆丟emini Key 绠＄悊銆佺粺璁＄瓑
+
+import { generatePoolId, generateAuthKey } from './utils.js';
+import {
+  savePoolConfig,
+  loadPoolConfig,
+  loadAllPoolConfigs,
+  deletePoolConfig,
+  saveAuthKeyMapping,
+  deleteAuthKeyMapping,
+  incrementPoolStats
+} from './kv-storage.js';
+import { isValidModel } from './model-fetcher.js';
+import { Logger } from './utils.js';
+
+/**
+ * 楠岃瘉姹犻厤缃? * @param {Object} config - 姹犻厤缃璞? * @param {Array} availableModels - 鍙敤妯″瀷鍒楄〃锛堝彲閫夛級
+ * @returns {Object} { valid: boolean, errors: Array }
+ */
+export function validatePoolConfig(config, availableModels = null) {
+  const errors = [];
+
+  // 楠岃瘉鍚嶇О
+  if (!config.name || typeof config.name !== 'string') {
+    errors.push('姹犲悕绉板繀椤绘槸闈炵┖瀛楃涓?);
+  }
+
+  // 楠岃瘉 Gemini Keys
+  if (!Array.isArray(config.geminiKeys) || config.geminiKeys.length === 0) {
+    errors.push('鑷冲皯闇€瑕佷竴涓?Gemini API Key');
+  } else {
+    config.geminiKeys.forEach((keyObj, index) => {
+      if (!keyObj.key || typeof keyObj.key !== 'string') {
+        errors.push(`Gemini Key #${index + 1} 鏃犳晥`);
+      }
+    });
+  }
+
+  // 楠岃瘉鍏佽鐨勬ā鍨嬶紙浣跨敤鍔ㄦ€佹ā鍨嬪垪琛級
+  if (config.allowedModels && Array.isArray(config.allowedModels) && config.allowedModels.length > 0) {
+    if (availableModels && availableModels.length > 0) {
+      // 濡傛灉鎻愪緵浜嗘ā鍨嬪垪琛紝杩涜楠岃瘉
+      config.allowedModels.forEach(modelId => {
+        if (!isValidModel(modelId, availableModels)) {
+          Logger.warn(`鏈煡鐨勬ā鍨?ID: ${modelId}`);
+          // 娉ㄦ剰锛氳繖閲屽彧璀﹀憡锛屼笉闃绘鍒涘缓锛屽洜涓烘ā鍨嬪垪琛ㄥ彲鑳戒細鏇存柊
+        }
+      });
+    } else {
+      // 濡傛灉娌℃湁妯″瀷鍒楄〃锛屽彧璁板綍鏃ュ織锛屼笉闃绘鎿嶄綔
+      Logger.debug('鏃犲彲鐢ㄦā鍨嬪垪琛ㄨ繘琛岄獙璇侊紝璺宠繃妯″瀷楠岃瘉');
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors: errors
+  };
+}
