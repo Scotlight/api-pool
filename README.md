@@ -1,248 +1,81 @@
-# Gemini API 多池管理系统
+﻿# Gemini API 多池管理系统
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Scotlight/api-pool)
 [![GitHub](https://img.shields.io/badge/GitHub-Scotlight/api--pool-blue?logo=github)](https://github.com/Scotlight/api-pool)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
-> **致谢**：本项目基于 [ling-drag0n/api-pool](https://github.com/ling-drag0n/api-pool) 开发，在原项目的基础上进行了针对 Gemini API 的适配和功能增强。感谢原作者的优秀工作！
+> 基于 [ling-drag0n/api-pool](https://github.com/ling-drag0n/api-pool) 开发，针对 Gemini API 进行适配和增强。
 
 ## 项目介绍
 
-Gemini API 多池管理系统是一个专为管理 Google Gemini API 密钥设计的代理应用程序。该系统支持创建多个完全隔离的 API 池，每个池拥有独立的认证密钥和配置，实现 OpenAI 格式 API 的转发和代理功能，适用于多团队共享 API 密钥或提高 API 请求可靠性的场景。
+Gemini API 多池管理系统运行在 Cloudflare Workers 上，支持创建多个完全隔离的 API 池，每个池拥有独立认证密钥，实现 OpenAI 格式 API 的转发和代理功能。
 
 ## 主要功能
 
-### 1. API 转发与兼容性
-
-- 完整支持 OpenAI API 格式的请求转发
-- 支持多种 API 端点：聊天(chat/completions)、嵌入(embeddings)、模型列表(models)
-- 自动转换 OpenAI 格式 ↔ Gemini 格式
-- 保持完全的 API 兼容性
-
-### 2. 多池隔离管理
-
-- 创建多个完全独立的 API 池
-- 每个池拥有独立的 Auth Key（`sk-pool-xxxx` 格式）
-- 池级别的模型访问控制
-- 池级别的统计数据追踪
-
-### 3. 灵活的密钥管理
-
-- 支持在 KV 存储中保存和管理 Gemini API 密钥
-- 支持批量添加、删除、启用、禁用 API 密钥
-- 支持为每个密钥设置权重（负载均衡）
-- 自动混淆显示密钥，保护安全
-
-### 4. 智能负载均衡
-
-- 基于权重的加权随机选择算法
-- 自动处理 API 请求失败和重试机制
-- 支持禁用单个密钥而不影响其他密钥
-
-### 5. 动态模型管理
-
-- 自动从 Gemini API 获取最新可用模型
-- 模型列表缓存（1小时），减少 API 调用
-- 支持限制每个池允许使用的模型
-
-### 6. 高级流式处理
-
-- 完整支持 OpenAI 的流式响应（SSE）处理
-- 实现自适应延迟算法，根据内容大小动态调整响应速率
-- 支持逐字符或批量发送两种模式
-- 保留原始 SSE 事件格式，确保完全兼容
-
-### 7. 实时统计与监控
-
-- Web 管理界面实时显示所有池的状态
-- 追踪每个池的请求次数、成功率、失败次数
-- 显示每个池的 Gemini Keys 数量和启用状态
-
-### 8. 安全特性
-
-- 管理界面密码保护（环境变量配置）
-- Session Token 认证机制
-- 密钥混淆显示，保护 API 密钥安全
-- 支持独立的会话密钥配置
-
-## 技术架构
-
-- 运行平台：Cloudflare Workers（全球边缘计算）
-- 存储方式：
-  - **Cloudflare KV**（适合<10个池，配置简单）→ 使用 `worker_kv.js`
-  - **Cloudflare D1**（推荐10+个池，容量更大）→ 使用 `worker_d1.js`
-  - 两个独立版本，根据需求选择部署
-- 开发语言：JavaScript ES6+（模块化架构）
-- 部署方式：选择对应的 worker 文件部署
-
-## 版本选择指南
-
-### 🎯 两个独立版本
-
-系统提供两个完全独立的部署文件，简单清晰：
-
-| 版本 | 文件 | 存储 | 适合场景 |
-|------|------|------|----------|
-| **KV 版本** | `worker_kv.js` | Cloudflare KV | <10 个池 |
-| **D1 版本** | `worker_d1.js` | Cloudflare D1 | 10+ 个池 |
-
-**无需选择存储类型**，直接部署对应的文件即可！
-
-### 快速决策树
-
-```
-池数量 < 10 个？
-├─ 是 → 使用 worker_kv.js ✅
-└─ 否 → 使用 worker_d1.js ✅
-
-需要 SQL 查询？
-├─ 是 → 使用 worker_d1.js ✅
-└─ 否 → 使用 worker_kv.js ✅
-
-预计快速增长？
-├─ 是 → 使用 worker_d1.js ✅
-└─ 否 → 使用 worker_kv.js ✅
-```
-
-### 详细对比
-
-| 项目 | KV 版本 | D1 版本 |
-|------|---------|---------|
-| **部署文件** | worker_kv.js | worker_d1.js |
-| **容量** | 1 GB | 5 GB |
-| **配置难度** | ⭐ 简单 | ⭐⭐ 中等 |
-| **读取速度** | ⭐⭐⭐⭐⭐ 极快 | ⭐⭐⭐⭐ 快 |
-| **适合场景** | 小规模 | 大规模 |
-
-### 推荐配置
-
-| 场景 | 推荐版本 | 理由 |
-|------|----------|------|
-| **新项目** | `worker_d1.js` | 容量大，扩展性好 |
-| **测试项目** | `worker_kv.js` | 配置简单，快速开始 |
-| **生产环境** | `worker_d1.js` | 更稳定，查询灵活 |
-| **小规模** | `worker_kv.js` | 够用且速度快 |
-| **大规模** | `worker_d1.js` | 容量支持更多池 |
-
-**默认推荐**：选择 `worker_d1.js`，一步到位！
-
----
+- **OpenAI 兼容** - 完整支持 OpenAI API 格式，自动转换 Gemini 请求
+- **多池隔离** - 多个独立 API 池，独立 Auth Key（`sk-pool-xxxx`）
+- **智能负载** - 权重分配、自动重试
+- **批量管理** - 批量操作 API 密钥
+- **实时统计** - 请求统计、成功率监控
+- **安全特性** - 密码保护、密钥混淆
 
 ## 快速部署
 
-### 🚀 一键部署（推荐）
+### 方式一：Web 控制台（推荐）
 
-点击上方的 **"Deploy to Cloudflare Workers"** 按钮可快速开始部署流程。
+登录 [Cloudflare Dashboard](https://dash.cloudflare.com/) → **Workers & Pages**
 
-**注意**：一键部署后仍需完成以下配置：
-1. 创建 KV 命名空间或 D1 数据库
-2. 绑定存储到 Worker
-3. 设置环境变量 `ADMIN_PASSWORD`
+#### KV 版本（<10 个池）
 
-详细步骤请参考下方的手动部署指南。
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Scotlight/api-pool)
 
----
+1. **创建 KV** → **KV** → **Create namespace** → `API_TOKENS`
+2. **创建 Worker** → **Create Worker** → 粘贴 `worker_kv.js` 代码
+3. **绑定 KV** → **Settings** → **Variables** → **KV Namespace Bindings** → 变量名 `API_TOKENS`
+4. **设置密码** → **Environment Variables** → 添加**加密**变量 `ADMIN_PASSWORD`
 
-### 📋 部署步骤概览
+#### D1 版本（10+ 个池，推荐）
 
-| 步骤 | KV 版本 | D1 版本 |
-|------|---------|---------|
-| **1. 创建存储** | 创建 KV 命名空间 `API_TOKENS` | 创建 D1 数据库 `gemini-pool-db` |
-| **2. 创建 Worker** | 新建 Worker 并上传 `worker_kv.js` | 新建 Worker 并上传 `worker_d1.js` |
-| **3. 绑定存储** | 绑定 KV → `API_TOKENS` | 绑定 D1 → `DB` |
-| **4. 设置密码** | 添加环境变量 `ADMIN_PASSWORD` | 添加环境变量 `ADMIN_PASSWORD` |
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Scotlight/api-pool)
 
-**注意**：
-- D1 版本会在首次运行时自动初始化数据库表，无需手动执行 SQL
-- 管理员密码**必须**通过环境变量 `ADMIN_PASSWORD` 设置，没有默认密码
+1. **创建 D1** → **D1** → **Create database** → `gemini-pool-db`
+2. **创建 Worker** → **Create Worker** → 粘贴 `worker_d1.js` 代码
+3. **绑定 D1** → **Settings** → **Variables** → **D1 Database Bindings** → 变量名 `DB`
+4. **设置密码** → **Environment Variables** → 添加**加密**变量 `ADMIN_PASSWORD`
+
+✅ 访问 Worker URL 并登录
 
 ---
 
-### 方式一：Web 控制台部署（简单）
-
-#### 准备工作
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. 进入 **Workers & Pages**
-
-#### KV 版本部署
-
-**1. 创建 KV 命名空间**
-- 进入 **KV** → **Create namespace** → 命名为 `API_TOKENS`
-
-**2. 创建并配置 Worker**
-- **Create Worker** → 粘贴 `worker_kv.js` 代码 → **Save and Deploy**
-- **Settings** → **Variables** → **KV Namespace Bindings**
-  - Variable name: `API_TOKENS`
-  - KV namespace: 选择刚创建的
-- **Variables** → **Environment Variables** → 添加 → 选择“密钥”（必须是！！！）
-  - `ADMIN_PASSWORD`: 你的管理员密码（必需）
-
-✅ 访问 Worker URL，使用设置的密码登录
-
-#### D1 版本部署
-
-**1. 创建 D1 数据库**
-- 进入 **D1** → **Create database** → 命名为 `gemini-pool-db`
-
-**2. 创建并配置 Worker**
-- **Create Worker** → 粘贴 `worker_d1.js` 代码 → **Save and Deploy**
-- **Settings** → **Variables** → **D1 Database Bindings**
-  - Variable name: `DB`
-  - D1 database: 选择 `gemini-pool-db`
-- **Variables** → **Environment Variables** → 添加 → 选择“密钥”（必须是！！！）
-  - `ADMIN_PASSWORD`: 你的管理员密码（必需）
-
-✅ 访问 Worker URL，使用设置的密码登录（表会自动创建）
-
----
-
-### 方式二：CLI 部署（推荐）
-
-#### 基础设置
+### 方式二：CLI 部署
 
 ```bash
-# 1. 安装并登录
+# 安装工具
 npm install -g wrangler
 wrangler login
 
-# 2. 克隆项目（如果从 GitHub 下载）
-git clone <repository-url>
-cd <project-folder>
-```
-
-#### KV 版本
-
-```bash
-# 复制配置模板
+# KV 版本
 cp wrangler-kv.toml.example wrangler.toml
-
-# 创建 KV 并记录输出的 ID
-wrangler kv:namespace create "API_TOKENS"
-
-# 编辑 wrangler.toml，将 id 替换为上面输出的 Namespace ID
-
-# 设置密码并部署
+wrangler kv:namespace create "API_TOKENS"  # 记录 ID
+# 编辑 wrangler.toml，替换 KV ID
 wrangler secret put ADMIN_PASSWORD
 wrangler deploy
-```
 
-#### D1 版本
-
-```bash
-# 复制配置模板
+# D1 版本
 cp wrangler-d1.toml.example wrangler.toml
-
-# 创建 D1 并记录输出的 Database ID
-wrangler d1 create gemini-pool-db
-
-# 编辑 wrangler.toml，将 database_id 替换为上面输出的 Database ID
-
-# 设置密码并部署（首次运行会自动初始化表）
+wrangler d1 create gemini-pool-db  # 记录 ID
+# 编辑 wrangler.toml，替换 database_id
 wrangler secret put ADMIN_PASSWORD
 wrangler deploy
 ```
 
-✅ 部署成功后，你将获得一个 `*.workers.dev` 的 URL。
+---
+
+### 版本选择
+
+| 版本 | 文件 | 适合场景 | 容量 |
+|------|------|----------|------|
+| **KV** | worker_kv.js | <10 个池，配置简单 | 1 GB |
+| **D1** | worker_d1.js | 10+ 个池，生产环境 | 5 GB |
 
 ---
 
