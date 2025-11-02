@@ -1,5 +1,9 @@
 # Gemini API 多池管理系统
 
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Scotlight/api-pool)
+[![GitHub](https://img.shields.io/badge/GitHub-Scotlight/api--pool-blue?logo=github)](https://github.com/Scotlight/api-pool)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+
 > **致谢**：本项目基于 [ling-drag0n/api-pool](https://github.com/ling-drag0n/api-pool) 开发，在原项目的基础上进行了针对 Gemini API 的适配和功能增强。感谢原作者的优秀工作！
 
 ## 项目介绍
@@ -125,6 +129,19 @@ Gemini API 多池管理系统是一个专为管理 Google Gemini API 密钥设�
 ---
 
 ## 快速部署
+
+### 🚀 一键部署（推荐）
+
+点击上方的 **"Deploy to Cloudflare Workers"** 按钮可快速开始部署流程。
+
+**注意**：一键部署后仍需完成以下配置：
+1. 创建 KV 命名空间或 D1 数据库
+2. 绑定存储到 Worker
+3. 设置环境变量 `ADMIN_PASSWORD`
+
+详细步骤请参考下方的手动部署指南。
+
+---
 
 ### 📋 部署步骤概览
 
