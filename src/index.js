@@ -5,7 +5,7 @@ import { HTTP_STATUS, ERROR_TYPES } from './constants.js';
 import { jsonResponse, errorResponse, htmlResponse } from './utils.js';
 import { validateRequest, routeRequest } from './routing.js';
 import { forwardChatCompletion, forwardEmbedding } from './gemini-forward.js';
-import { login, verifyAdminRequest, createSessionCookie } from './session.js';
+import { login, verifyAdminRequest, createSessionCookie, SESSION_TIMEOUT_SECONDS } from './session.js';
 import { generateLoginHTML, generateDashboardHTML } from './admin-ui-new.js';
 import { generateCreatePoolHTML } from './pool-create-ui.js';
 import { generatePoolDetailHTML } from './pool-detail-ui.js';
@@ -50,7 +50,7 @@ export default {
         
         if (result.success) {
           return jsonResponse(result, HTTP_STATUS.OK, {
-            "Set-Cookie": createSessionCookie(result.sessionToken)
+            "Set-Cookie": createSessionCookie(result.sessionToken, SESSION_TIMEOUT_SECONDS)
           });
         } else {
           return jsonResponse(result, HTTP_STATUS.UNAUTHORIZED);

@@ -1,5 +1,5 @@
 // ==================== 多池隔离系统 v3.0 (D1 数据库版本) ====================
-// 自动生成于: 2025-11-02T05:17:15.695Z
+// 自动生成于: 2025-11-02T05:39:43.155Z
 // 
 // 这是一个真正的多池隔离系统 - D1 数据库版本：
 // - 多个独立的池，完全隔离
@@ -2836,7 +2836,10 @@ async function forwardEmbedding(env, pool, geminiKeyObj, reqBody) {
 
 // 会话存储（内存中，重启后失效）
 const sessions = new Map();
-const SESSION_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 7天
+const SESSION_TIMEOUT = 30 * 24 * 60 * 60 * 1000; // 30天
+const SESSION_TIMEOUT_SECONDS = 30 * 24 * 60 * 60; // 30天（秒）
+
+// 导出会话超时时间供其他模块使用
 
 /**
  * 获取管理员密码（从环境变量）
@@ -2937,10 +2940,10 @@ function logout(sessionToken) {
 /**
  * 创建 session cookie
  * @param {string} token - Session Token
- * @param {number} maxAge - Cookie 最大生存时间（秒）
+ * @param {number} maxAge - Cookie 最大生存时间（秒），默认 30 天
  * @returns {string} Cookie 字符串
  */
-function createSessionCookie(token, maxAge = 86400) {
+function createSessionCookie(token, maxAge = SESSION_TIMEOUT_SECONDS) {
   return `session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
 }
 
@@ -5950,7 +5953,7 @@ export default {
         
         if (result.success) {
           return jsonResponse(result, HTTP_STATUS.OK, {
-            "Set-Cookie": createSessionCookie(result.sessionToken)
+            "Set-Cookie": createSessionCookie(result.sessionToken, SESSION_TIMEOUT_SECONDS)
           });
         } else {
           return jsonResponse(result, HTTP_STATUS.UNAUTHORIZED);

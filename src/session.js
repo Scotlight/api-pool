@@ -5,7 +5,11 @@ import { generateRandomKey } from './utils.js';
 
 // 会话存储（内存中，重启后失效）
 const sessions = new Map();
-const SESSION_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 7天
+const SESSION_TIMEOUT = 30 * 24 * 60 * 60 * 1000; // 30天
+const SESSION_TIMEOUT_SECONDS = 30 * 24 * 60 * 60; // 30天（秒）
+
+// 导出会话超时时间供其他模块使用
+export { SESSION_TIMEOUT_SECONDS };
 
 /**
  * 获取管理员密码（从环境变量）
@@ -106,10 +110,10 @@ export function logout(sessionToken) {
 /**
  * 创建 session cookie
  * @param {string} token - Session Token
- * @param {number} maxAge - Cookie 最大生存时间（秒）
+ * @param {number} maxAge - Cookie 最大生存时间（秒），默认 30 天
  * @returns {string} Cookie 字符串
  */
-export function createSessionCookie(token, maxAge = 86400) {
+export function createSessionCookie(token, maxAge = SESSION_TIMEOUT_SECONDS) {
   return `session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
 }
 
