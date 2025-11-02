@@ -37,24 +37,37 @@ export function setLogLevel(level) {
 }
 
 /**
- * 生成唯一ID
+ * 生成唯一ID（使用加密安全的随机数）
  * @param {string} prefix - ID前缀
  * @returns {string} 唯一ID
  */
 export function generateId(prefix = "pool") {
   const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 10);
+  // 生成加密安全的随机字节
+  const randomBytes = new Uint8Array(6);
+  crypto.getRandomValues(randomBytes);
+  const random = Array.from(randomBytes)
+    .map(byte => byte.toString(36))
+    .join('')
+    .substring(0, 8);
   return `${prefix}-${timestamp}-${random}`;
 }
 
 /**
- * 生成池的 authKey
+ * 生成池的 authKey（使用加密安全的随机数）
  * @returns {string} 格式为 sk-pool-xxxx 的authKey
  */
 export function generatePoolAuthKey() {
-  const random = Math.random().toString(36).substring(2, 15) +
-                 Math.random().toString(36).substring(2, 15);
-  return `sk-pool-${random}`;
+  // 生成 32 个随机字节的加密安全密钥
+  const randomBytes = new Uint8Array(32);
+  crypto.getRandomValues(randomBytes);
+  
+  // 转换为十六进制字符串
+  const randomHex = Array.from(randomBytes)
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
+  
+  return `sk-pool-${randomHex.substring(0, 40)}`; // 取前 40 个字符
 }
 
 /**
@@ -74,15 +87,18 @@ export function generateAuthKey() {
 }
 
 /**
- * 生成随机密钥（用于会话等）
+ * 生成随机密钥（使用加密安全的随机数，用于会话等）
  * @param {number} length - 密钥长度
  * @returns {string} 随机密钥
  */
 export function generateRandomKey(length = 32) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const randomBytes = new Uint8Array(length);
+  crypto.getRandomValues(randomBytes);
+  
   let result = '';
   for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+    result += chars.charAt(randomBytes[i] % chars.length);
   }
   return result;
 }
