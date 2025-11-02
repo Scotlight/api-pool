@@ -37,37 +37,32 @@ export function setLogLevel(level) {
 }
 
 /**
- * 生成唯一ID（使用加密安全的随机数）
+ * 生成唯一ID（使用 crypto.randomUUID）
+ * 格式：prefix-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ * 只包含字母、数字，所有调用商都支持
  * @param {string} prefix - ID前缀
  * @returns {string} 唯一ID
  */
 export function generateId(prefix = "pool") {
-  const timestamp = Date.now().toString(36);
-  // 生成加密安全的随机字节
-  const randomBytes = new Uint8Array(6);
-  crypto.getRandomValues(randomBytes);
-  const random = Array.from(randomBytes)
-    .map(byte => byte.toString(36))
-    .join('')
-    .substring(0, 8);
-  return `${prefix}-${timestamp}-${random}`;
+  // 使用 crypto.randomUUID 确保加密安全性
+  const uuid = crypto.randomUUID();
+  // 移除连字符得到 32 字符的安全随机字符串
+  const randomPart = uuid.replace(/-/g, '');
+  return `${prefix}-${randomPart}`;
 }
 
 /**
- * 生成池的 authKey（使用加密安全的随机数）
+ * 生成池的 authKey（使用 crypto.randomUUID）
+ * 格式：sk-pool-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ * 确保所有字符都是 OpenAI/Gemini 兼容的（只包含字母、数字、连字符）
  * @returns {string} 格式为 sk-pool-xxxx 的authKey
  */
 export function generatePoolAuthKey() {
-  // 生成 32 个随机字节的加密安全密钥
-  const randomBytes = new Uint8Array(32);
-  crypto.getRandomValues(randomBytes);
-  
-  // 转换为十六进制字符串
-  const randomHex = Array.from(randomBytes)
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
-  
-  return `sk-pool-${randomHex.substring(0, 40)}`; // 取前 40 个字符
+  // 使用 crypto.randomUUID 生成 UUID
+  const uuid = crypto.randomUUID();
+  // 移除 UUID 中的连字符，转换为小写
+  const randomPart = uuid.replace(/-/g, '').substring(0, 32);
+  return `sk-pool-${randomPart}`;
 }
 
 /**
@@ -87,20 +82,22 @@ export function generateAuthKey() {
 }
 
 /**
- * 生成随机密钥（使用加密安全的随机数，用于会话等）
- * @param {number} length - 密钥长度
+ * 生成随机密钥（使用 crypto.randomUUID）
+ * 只包含字母、数字，所有调用商都支持
+ * @param {number} length - 密钥长度（最多 32 字符）
  * @returns {string} 随机密钥
  */
 export function generateRandomKey(length = 32) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const randomBytes = new Uint8Array(length);
-  crypto.getRandomValues(randomBytes);
-  
+  // 如果需要很长的密钥，组合多个 UUID
+  const uuidCount = Math.ceil(length / 32);
   let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(randomBytes[i] % chars.length);
+  
+  for (let i = 0; i < uuidCount; i++) {
+    const uuid = crypto.randomUUID();
+    result += uuid.replace(/-/g, '');
   }
-  return result;
+  
+  return result.substring(0, length);
 }
 
 /**

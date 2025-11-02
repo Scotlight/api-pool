@@ -1,5 +1,5 @@
 // ==================== 多池隔离系统 v3.0 (D1 数据库版本) ====================
-// 自动生成于: 2025-11-02T05:06:08.200Z
+// 自动生成于: 2025-11-02T05:17:15.695Z
 // 
 // 这是一个真正的多池隔离系统 - D1 数据库版本：
 // - 多个独立的池，完全隔离
@@ -154,37 +154,32 @@ function setLogLevel(level) {
 }
 
 /**
- * 生成唯一ID（使用加密安全的随机数）
+ * 生成唯一ID（使用 crypto.randomUUID）
+ * 格式：prefix-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ * 只包含字母、数字，所有调用商都支持
  * @param {string} prefix - ID前缀
  * @returns {string} 唯一ID
  */
 function generateId(prefix = "pool") {
-  const timestamp = Date.now().toString(36);
-  // 生成加密安全的随机字节
-  const randomBytes = new Uint8Array(6);
-  crypto.getRandomValues(randomBytes);
-  const random = Array.from(randomBytes)
-    .map(byte => byte.toString(36))
-    .join('')
-    .substring(0, 8);
-  return `${prefix}-${timestamp}-${random}`;
+  // 使用 crypto.randomUUID 确保加密安全性
+  const uuid = crypto.randomUUID();
+  // 移除连字符得到 32 字符的安全随机字符串
+  const randomPart = uuid.replace(/-/g, '');
+  return `${prefix}-${randomPart}`;
 }
 
 /**
- * 生成池的 authKey（使用加密安全的随机数）
+ * 生成池的 authKey（使用 crypto.randomUUID）
+ * 格式：sk-pool-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ * 确保所有字符都是 OpenAI/Gemini 兼容的（只包含字母、数字、连字符）
  * @returns {string} 格式为 sk-pool-xxxx 的authKey
  */
 function generatePoolAuthKey() {
-  // 生成 32 个随机字节的加密安全密钥
-  const randomBytes = new Uint8Array(32);
-  crypto.getRandomValues(randomBytes);
-  
-  // 转换为十六进制字符串
-  const randomHex = Array.from(randomBytes)
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('');
-  
-  return `sk-pool-${randomHex.substring(0, 40)}`; // 取前 40 个字符
+  // 使用 crypto.randomUUID 生成 UUID
+  const uuid = crypto.randomUUID();
+  // 移除 UUID 中的连字符，转换为小写
+  const randomPart = uuid.replace(/-/g, '').substring(0, 32);
+  return `sk-pool-${randomPart}`;
 }
 
 /**
@@ -204,20 +199,22 @@ function generateAuthKey() {
 }
 
 /**
- * 生成随机密钥（使用加密安全的随机数，用于会话等）
- * @param {number} length - 密钥长度
+ * 生成随机密钥（使用 crypto.randomUUID）
+ * 只包含字母、数字，所有调用商都支持
+ * @param {number} length - 密钥长度（最多 32 字符）
  * @returns {string} 随机密钥
  */
 function generateRandomKey(length = 32) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const randomBytes = new Uint8Array(length);
-  crypto.getRandomValues(randomBytes);
-  
+  // 如果需要很长的密钥，组合多个 UUID
+  const uuidCount = Math.ceil(length / 32);
   let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(randomBytes[i] % chars.length);
+  
+  for (let i = 0; i < uuidCount; i++) {
+    const uuid = crypto.randomUUID();
+    result += uuid.replace(/-/g, '');
   }
-  return result;
+  
+  return result.substring(0, length);
 }
 
 /**
@@ -4106,6 +4103,20 @@ function generateCreatePoolHTML() {
         showError('请至少输入一个 Gemini API Key');
         return;
       }
+      
+      // 验证所有 Key 格式
+      const invalidFormatKeys = keyLines.filter(key => !key.startsWith('AIza'));
+      if (invalidFormatKeys.length > 0) {
+        showError(\`发现 \${invalidFormatKeys.length} 个无效的 Key 格式！\\n\\nKey 必须以 AIza 开头。\\n\\n第一个无效 Key: \${invalidFormatKeys[0]}\`);
+        return;
+      }
+      
+      // 验证密钥中没有不支持的字符
+      const invalidCharKeys = keyLines.filter(key => !/^[a-zA-Z0-9\\-_]+$/.test(key));
+      if (invalidCharKeys.length > 0) {
+        showError(\`发现 \${invalidCharKeys.length} 个包含无效字符的 Key！\\n\\n密钥只能包含：\\n• 字母 (A-Z, a-z)\\n• 数字 (0-9)\\n• 连字符 (-) 和下划线 (_)\\n\\n第一个无效 Key: \${invalidCharKeys[0]}\`);
+        return;
+      }
 
       // 构建 geminiKeys 数组（不需要名称）
       const geminiKeys = keyLines.map(key => ({
@@ -5045,8 +5056,15 @@ function generatePoolDetailHTML(poolId) {
         enabled: document.getElementById('newKeyEnabled').checked
       };
 
+      // 验证 Gemini API Key 格式
       if (!newKey.key.startsWith('AIza')) {
-        alert('无效的 Gemini API Key 格式！Key 应该以 AIza 开头。');
+        alert('无效的 Gemini API Key 格式！\n\nKey 必须以 AIza 开头。');
+        return;
+      }
+      
+      // 验证密钥中没有不支持的字符
+      if (!/^[a-zA-Z0-9\-_]+$/.test(newKey.key)) {
+        alert('无效的密钥字符！\n\n密钥只能包含：\n• 字母 (A-Z, a-z)\n• 数字 (0-9)\n• 连字符 (-) 和下划线 (_)');
         return;
       }
 
@@ -5117,9 +5135,16 @@ function generatePoolDetailHTML(poolId) {
       }
 
       // 验证所有Key格式
-      const invalidKeys = keyLines.filter(key => !key.startsWith('AIza'));
-      if (invalidKeys.length > 0) {
-        alert(\`发现 \${invalidKeys.length} 个无效的 Key 格式！\\n\\nKey 应该以 AIza 开头。\\n\\n第一个无效 Key: \${invalidKeys[0]}\`);
+      const invalidFormatKeys = keyLines.filter(key => !key.startsWith('AIza'));
+      if (invalidFormatKeys.length > 0) {
+        alert(\`发现 \${invalidFormatKeys.length} 个无效的 Key 格式！\\n\\nKey 必须以 AIza 开头。\\n\\n第一个无效 Key: \${invalidFormatKeys[0]}\`);
+        return;
+      }
+      
+      // 验证密钥中没有不支持的字符
+      const invalidCharKeys = keyLines.filter(key => !/^[a-zA-Z0-9\\-_]+$/.test(key));
+      if (invalidCharKeys.length > 0) {
+        alert(\`发现 \${invalidCharKeys.length} 个包含无效字符的 Key！\\n\\n密钥只能包含：\\n• 字母 (A-Z, a-z)\\n• 数字 (0-9)\\n• 连字符 (-) 和下划线 (_)\\n\\n第一个无效 Key: \${invalidCharKeys[0]}\`);
         return;
       }
 

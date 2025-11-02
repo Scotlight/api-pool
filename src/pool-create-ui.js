@@ -260,6 +260,20 @@ export function generateCreatePoolHTML() {
         showError('请至少输入一个 Gemini API Key');
         return;
       }
+      
+      // 验证所有 Key 格式
+      const invalidFormatKeys = keyLines.filter(key => !key.startsWith('AIza'));
+      if (invalidFormatKeys.length > 0) {
+        showError(\`发现 \${invalidFormatKeys.length} 个无效的 Key 格式！\\n\\nKey 必须以 AIza 开头。\\n\\n第一个无效 Key: \${invalidFormatKeys[0]}\`);
+        return;
+      }
+      
+      // 验证密钥中没有不支持的字符
+      const invalidCharKeys = keyLines.filter(key => !/^[a-zA-Z0-9\\-_]+$/.test(key));
+      if (invalidCharKeys.length > 0) {
+        showError(\`发现 \${invalidCharKeys.length} 个包含无效字符的 Key！\\n\\n密钥只能包含：\\n• 字母 (A-Z, a-z)\\n• 数字 (0-9)\\n• 连字符 (-) 和下划线 (_)\\n\\n第一个无效 Key: \${invalidCharKeys[0]}\`);
+        return;
+      }
 
       // 构建 geminiKeys 数组（不需要名称）
       const geminiKeys = keyLines.map(key => ({

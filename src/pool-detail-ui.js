@@ -852,8 +852,15 @@ export function generatePoolDetailHTML(poolId) {
         enabled: document.getElementById('newKeyEnabled').checked
       };
 
+      // 验证 Gemini API Key 格式
       if (!newKey.key.startsWith('AIza')) {
-        alert('无效的 Gemini API Key 格式！Key 应该以 AIza 开头。');
+        alert('无效的 Gemini API Key 格式！\n\nKey 必须以 AIza 开头。');
+        return;
+      }
+      
+      // 验证密钥中没有不支持的字符
+      if (!/^[a-zA-Z0-9\-_]+$/.test(newKey.key)) {
+        alert('无效的密钥字符！\n\n密钥只能包含：\n• 字母 (A-Z, a-z)\n• 数字 (0-9)\n• 连字符 (-) 和下划线 (_)');
         return;
       }
 
@@ -924,9 +931,16 @@ export function generatePoolDetailHTML(poolId) {
       }
 
       // 验证所有Key格式
-      const invalidKeys = keyLines.filter(key => !key.startsWith('AIza'));
-      if (invalidKeys.length > 0) {
-        alert(\`发现 \${invalidKeys.length} 个无效的 Key 格式！\\n\\nKey 应该以 AIza 开头。\\n\\n第一个无效 Key: \${invalidKeys[0]}\`);
+      const invalidFormatKeys = keyLines.filter(key => !key.startsWith('AIza'));
+      if (invalidFormatKeys.length > 0) {
+        alert(\`发现 \${invalidFormatKeys.length} 个无效的 Key 格式！\\n\\nKey 必须以 AIza 开头。\\n\\n第一个无效 Key: \${invalidFormatKeys[0]}\`);
+        return;
+      }
+      
+      // 验证密钥中没有不支持的字符
+      const invalidCharKeys = keyLines.filter(key => !/^[a-zA-Z0-9\\-_]+$/.test(key));
+      if (invalidCharKeys.length > 0) {
+        alert(\`发现 \${invalidCharKeys.length} 个包含无效字符的 Key！\\n\\n密钥只能包含：\\n• 字母 (A-Z, a-z)\\n• 数字 (0-9)\\n• 连字符 (-) 和下划线 (_)\\n\\n第一个无效 Key: \${invalidCharKeys[0]}\`);
         return;
       }
 
