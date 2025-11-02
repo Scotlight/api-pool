@@ -35,7 +35,7 @@ Gemini API 多池管理系统运行在 Cloudflare Workers 上，支持创建多�
 
 #### D1 版本（10+ 个池，推荐）
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Scotlight/api-pool)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Scotlight/api-pool&branch=d1)
 
 1. **创建 D1** → **D1** → **Create database** → `gemini-pool-db`
 2. **创建 Worker** → **Create Worker** → 粘贴 `worker_d1.js` 代码
