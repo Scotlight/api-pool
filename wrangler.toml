@@ -1,0 +1,23 @@
+name = "gemini-api-pool"
+main = "worker_kv.js"
+compatibility_date = "2024-01-01"
+
+# ============================================
+# 重要提示：部署后需要完成以下配置
+# ============================================
+# 1. 创建 KV 命名空间：wrangler kv:namespace create "API_TOKENS"
+# 2. 将生成的 id 替换下面的 "YOUR_KV_NAMESPACE_ID"
+# 3. 设置管理员密码：wrangler secret put ADMIN_PASSWORD
+# 4. 重新部署：wrangler deploy
+#
+# 如果使用 D1 版本，请参考 wrangler-d1.toml.example
+# ============================================
+
+[[kv_namespaces]]
+binding = "API_TOKENS"
+id = "YOUR_KV_NAMESPACE_ID"  # 替换为你的 KV Namespace ID
+
+# 环境变量说明：
+# ADMIN_PASSWORD 必须通过以下方式设置（不能直接写在这里）：
+# 1. Cloudflare Dashboard: Workers → Settings → Variables → Add variable (选择"加密")
+# 2. CLI 命令: wrangler secret put ADMIN_PASSWORD
