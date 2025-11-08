@@ -28,8 +28,14 @@ export async function initializeDatabase(db) {
         pool_id TEXT NOT NULL,
         created_at INTEGER NOT NULL
       )`),
+      db.prepare(`CREATE TABLE IF NOT EXISTS sessions (
+        token TEXT PRIMARY KEY,
+        created_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+      )`),
       db.prepare(`CREATE INDEX IF NOT EXISTS idx_pools_updated ON pools(updated_at DESC)`),
-      db.prepare(`CREATE INDEX IF NOT EXISTS idx_auth_pool ON auth_mappings(pool_id)`)
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_auth_pool ON auth_mappings(pool_id)`),
+      db.prepare(`CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at)`)
     ]);
 
     Logger.info('D1 数据库初始化成功');

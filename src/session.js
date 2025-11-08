@@ -3,8 +3,6 @@
 
 import { generateRandomKey } from './utils.js';
 
-// 会话存储（内存中，重启后失效）
-const sessions = new Map();
 const SESSION_TIMEOUT = 30 * 24 * 60 * 60 * 1000; // 30天
 const SESSION_TIMEOUT_SECONDS = 30 * 24 * 60 * 60; // 30天（秒）
 
@@ -48,9 +46,9 @@ export function verifyAdminPassword(env, password) {
  * 管理员登录
  * @param {Object} env - Worker环境对象
  * @param {string} password - 密码
- * @returns {Object} { success: boolean, sessionToken?: string, message?: string }
+ * @returns {Promise<Object>} { success: boolean, sessionToken?: string, message?: string }
  */
-export function login(env, password) {
+export async function login(env, password) {
   const isValid = verifyAdminPassword(env, password);
 
   if (!isValid) {
@@ -62,49 +60,85 @@ export function login(env, password) {
 
   // 生成 session token
   const sessionToken = generateRandomKey(32);
-  const session = {
-    token: sessionToken,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + SESSION_TIMEOUT
-  };
+  const now = Date.now();
+  const expiresAt = now + SESSION_TIMEOUT;
 
-  sessions.set(sessionToken, session);
+  // 存储到 D1 数据库
+  try {
+    await env.DB.prepare(`
+      INSERT OR REPLACE INTO sessions (token, created_at, expires_at)
+      VALUES (?, ?, ?)
+    `).bind(sessionToken, now, expiresAt).run();
 
-  return {
-    success: true,
-    sessionToken: sessionToken,
-    expiresAt: session.expiresAt
-  };
+    return {
+      success: true,
+      sessionToken: sessionToken,
+      expiresAt: expiresAt
+    };
+  } catch (error) {
+    console.error('保存session到D1失败:', error);
+    return {
+      success: false,
+      message: "登录失败，请稍后重试"
+    };
+  }
 }
 
 /**
  * 验证 session token
+ * @param {Object} env - Worker环境对象
  * @param {string} sessionToken - Session Token
- * @returns {boolean} 是否有效
+ * @returns {Promise<boolean>} 是否有效
  */
-export function validateSession(sessionToken) {
-  const session = sessions.get(sessionToken);
-  
-  if (!session) {
+export async function validateSession(env, sessionToken) {
+  if (!sessionToken) {
     return false;
   }
-  
-  // 检查是否过期
-  if (Date.now() > session.expiresAt) {
-    sessions.delete(sessionToken);
+
+  try {
+    const result = await env.DB.prepare(`
+      SELECT expires_at FROM sessions WHERE token = ?
+    `).bind(sessionToken).first();
+
+    if (!result) {
+      return false;
+    }
+
+    const now = Date.now();
+    // 检查是否过期
+    if (now > result.expires_at) {
+      // 删除过期session
+      await env.DB.prepare(`DELETE FROM sessions WHERE token = ?`)
+        .bind(sessionToken).run();
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('验证session失败:', error);
     return false;
   }
-  
-  return true;
 }
 
 /**
  * 登出
+ * @param {Object} env - Worker环境对象
  * @param {string} sessionToken - Session Token
- * @returns {boolean} 是否成功
+ * @returns {Promise<boolean>} 是否成功
  */
-export function logout(sessionToken) {
-  return sessions.delete(sessionToken);
+export async function logout(env, sessionToken) {
+  if (!sessionToken) {
+    return false;
+  }
+
+  try {
+    await env.DB.prepare(`DELETE FROM sessions WHERE token = ?`)
+      .bind(sessionToken).run();
+    return true;
+  } catch (error) {
+    console.error('登出失败:', error);
+    return false;
+  }
 }
 
 /**
@@ -145,45 +179,53 @@ export function extractSessionToken(request) {
 
 /**
  * 验证请求的管理员权限
+ * @param {Object} env - Worker环境对象
  * @param {Request} request - 请求对象
- * @returns {boolean} 是否有权限
+ * @returns {Promise<boolean>} 是否有权限
  */
-export function verifyAdminRequest(request) {
+export async function verifyAdminRequest(env, request) {
   const sessionToken = extractSessionToken(request);
   
   if (!sessionToken) {
     return false;
   }
   
-  return validateSession(sessionToken);
+  return await validateSession(env, sessionToken);
 }
 
 /**
  * 清理过期的 sessions
+ * @param {Object} env - Worker环境对象
+ * @returns {Promise<number>} 删除的session数量
  */
-export function cleanupExpiredSessions() {
-  const now = Date.now();
-  const toDelete = [];
-  
-  for (const [token, session] of sessions.entries()) {
-    if (now > session.expiresAt) {
-      toDelete.push(token);
-    }
+export async function cleanupExpiredSessions(env) {
+  try {
+    const now = Date.now();
+    const result = await env.DB.prepare(`
+      DELETE FROM sessions WHERE expires_at < ?
+    `).bind(now).run();
+    return result.meta.changes || 0;
+  } catch (error) {
+    console.error('清理过期session失败:', error);
+    return 0;
   }
-  
-  for (const token of toDelete) {
-    sessions.delete(token);
-  }
-  
-  return toDelete.length;
 }
 
 /**
  * 获取活跃 session 数量
- * @returns {number} 活跃 session 数量
+ * @param {Object} env - Worker环境对象
+ * @returns {Promise<number>} 活跃 session 数量
  */
-export function getActiveSessionCount() {
-  cleanupExpiredSessions();
-  return sessions.size;
+export async function getActiveSessionCount(env) {
+  try {
+    const now = Date.now();
+    const result = await env.DB.prepare(`
+      SELECT COUNT(*) as count FROM sessions WHERE expires_at > ?
+    `).bind(now).first();
+    return result?.count || 0;
+  } catch (error) {
+    console.error('获取活跃session数量失败:', error);
+    return 0;
+  }
 }
 
