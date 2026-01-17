@@ -1,4 +1,4 @@
-﻿// 处理池的 CRUD 操作、Gemini Key 管理、统计等
+// 处理池的 CRUD 操作、Gemini Key 管理、统计等
 
 
 /**

@@ -1,5 +1,5 @@
 // ==================== 多池隔离系统 v3.0 (D1 数据库版本) ====================
-// 自动生成于: 2025-11-08T13:15:56.404Z
+// 自动生成于: 2026-01-17T13:38:59.568Z
 // 
 // 这是一个真正的多池隔离系统 - D1 数据库版本：
 // - 多个独立的池，完全隔离
@@ -490,6 +490,27 @@ function estimateTokenCount(text, isChatMessage = false, textType = "normal") {
   }
 
   return Math.max(1, Math.round(estimatedTokens)); // 确保至少返回1个token
+}
+
+// ========== JavaScript 字符串转义 ==========
+/**
+ * Escape special characters for safe JavaScript string interpolation
+ * 将字符串转义为可在 JavaScript 字符串字面量中安全使用的格式
+ *
+ * @param {string} str - 要转义的字符串
+ * @returns {string} 转义后的字符串，可安全用于 JS 上下文
+ */
+function escapeJsString(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\/g, '\\\\')      // 先转义反斜杠（必须最先处理）
+    .replace(/'/g, "\\'")        // 转义单引号
+    .replace(/"/g, '\\"')        // 转义双引号
+    .replace(/\n/g, '\\n')       // 转义换行符
+    .replace(/\r/g, '\\r')       // 转义回车符
+    .replace(/\t/g, '\\t')       // 转义制表符
+    .replace(/</g, '\\x3c')      // 转义小于号（辅助防止 HTML 注入）
+    .replace(/>/g, '\\x3e');     // 转义大于号（辅助防止 HTML 注入）
 }
 
 
@@ -1106,7 +1127,7 @@ function getModelCacheStatus() {
 
 
 // ==================== 模块: pool-manager.js ====================
-﻿// 处理池的 CRUD 操作、Gemini Key 管理、统计等
+// 处理池的 CRUD 操作、Gemini Key 管理、统计等
 
 
 /**
@@ -2684,8 +2705,14 @@ async function forwardChatCompletion(env, pool, geminiKeyObj, reqBody) {
     if (isStreaming) {
       if (!geminiResponse.ok) {
         const errorText = await geminiResponse.text();
-        
-        return new Response(errorText, {
+
+        return new Response(JSON.stringify({
+          error: {
+            message: errorText,
+            type: 'api_error',
+            code: geminiResponse.status
+          }
+        }), {
           status: geminiResponse.status,
           headers: { 'Content-Type': 'application/json' }
         });
@@ -4163,7 +4190,7 @@ function generateCreatePoolHTML() {
       }
       
       // 验证密钥中没有不支持的字符
-      const invalidCharKeys = keyLines.filter(key => !/^[a-zA-Z0-9\\-_]+$/.test(key));
+      const invalidCharKeys = keyLines.filter(key => !/^[a-zA-Z0-9_-]+$/.test(key));
       if (invalidCharKeys.length > 0) {
         showError(\`发现 \${invalidCharKeys.length} 个包含无效字符的 Key！\\n\\n密钥只能包含：\\n• 字母 (A-Z, a-z)\\n• 数字 (0-9)\\n• 连字符 (-) 和下划线 (_)\\n\\n第一个无效 Key: \${invalidCharKeys[0]}\`);
         return;
@@ -4254,7 +4281,7 @@ function generateCreatePoolHTML() {
 
 
 // ==================== 模块: pool-detail-ui.js ====================
-﻿// ==================== 单个池详情 UI 模块 ====================
+// ==================== 单个池详情 UI 模块 ====================
 // 提供单个池的详细管理界面，可以管理每个 API Key
 
 
@@ -4827,7 +4854,7 @@ function generatePoolDetailHTML(poolId) {
   </div>
 
   <script>
-    const POOL_ID = '${poolId}';
+    const POOL_ID = '${escapeJsString(poolId)}';
     let poolData = null;
     let availableModels = [];  // 可用模型列表
 

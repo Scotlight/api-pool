@@ -374,3 +374,24 @@ export function estimateTokenCount(text, isChatMessage = false, textType = "norm
 
   return Math.max(1, Math.round(estimatedTokens)); // 确保至少返回1个token
 }
+
+// ========== JavaScript 字符串转义 ==========
+/**
+ * Escape special characters for safe JavaScript string interpolation
+ * 将字符串转义为可在 JavaScript 字符串字面量中安全使用的格式
+ *
+ * @param {string} str - 要转义的字符串
+ * @returns {string} 转义后的字符串，可安全用于 JS 上下文
+ */
+export function escapeJsString(str) {
+  if (!str) return '';
+  return str
+    .replace(/\\/g, '\\\\')      // 先转义反斜杠（必须最先处理）
+    .replace(/'/g, "\\'")        // 转义单引号
+    .replace(/"/g, '\\"')        // 转义双引号
+    .replace(/\n/g, '\\n')       // 转义换行符
+    .replace(/\r/g, '\\r')       // 转义回车符
+    .replace(/\t/g, '\\t')       // 转义制表符
+    .replace(/</g, '\\x3c')      // 转义小于号（辅助防止 HTML 注入）
+    .replace(/>/g, '\\x3e');     // 转义大于号（辅助防止 HTML 注入）
+}

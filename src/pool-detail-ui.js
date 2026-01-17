@@ -1,7 +1,7 @@
-﻿// ==================== 单个池详情 UI 模块 ====================
+// ==================== 单个池详情 UI 模块 ====================
 // 提供单个池的详细管理界面，可以管理每个 API Key
 
-import { htmlResponse } from './utils.js';
+import { htmlResponse, escapeJsString } from './utils.js';
 
 /**
  * 生成单个池详情页面 HTML
@@ -572,7 +572,7 @@ export function generatePoolDetailHTML(poolId) {
   </div>
 
   <script>
-    const POOL_ID = '${poolId}';
+    const POOL_ID = '${escapeJsString(poolId)}';
     let poolData = null;
     let availableModels = [];  // 可用模型列表
 
@@ -889,8 +889,8 @@ export function generatePoolDetailHTML(poolId) {
       }
       
       // 验证密钥中没有不支持的字符
-      if (!/^[a-zA-Z0-9\-_]+$/.test(newKey.key)) {
-        alert('无效的密钥字符！\n\n密钥只能包含：\n• 字母 (A-Z, a-z)\n• 数字 (0-9)\n• 连字符 (-) 和下划线 (_)');
+      if (!/^[a-zA-Z0-9_-]+$/.test(newKey.key)) {
+        alert('无效的密钥字符！\\n\\n密钥只能包含：\\n• 字母 (A-Z, a-z)\\n• 数字 (0-9)\\n• 连字符 (-) 和下划线 (_)');
         return;
       }
 
@@ -968,7 +968,7 @@ export function generatePoolDetailHTML(poolId) {
       }
       
       // 验证密钥中没有不支持的字符
-      const invalidCharKeys = keyLines.filter(key => !/^[a-zA-Z0-9\\-_]+$/.test(key));
+      const invalidCharKeys = keyLines.filter(key => !/^[a-zA-Z0-9_-]+$/.test(key));
       if (invalidCharKeys.length > 0) {
         alert(\`发现 \${invalidCharKeys.length} 个包含无效字符的 Key！\\n\\n密钥只能包含：\\n• 字母 (A-Z, a-z)\\n• 数字 (0-9)\\n• 连字符 (-) 和下划线 (_)\\n\\n第一个无效 Key: \${invalidCharKeys[0]}\`);
         return;

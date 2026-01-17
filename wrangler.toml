@@ -1,23 +1,24 @@
 name = "gemini-api-pool"
-main = "worker_kv.js"
+main = "worker_d1.js"
 compatibility_date = "2024-01-01"
 
 # ============================================
-# 重要提示：部署后需要完成以下配置
+# D1 数据库绑定配置
 # ============================================
-# 1. 创建 KV 命名空间：wrangler kv:namespace create "API_TOKENS"
-# 2. 将生成的 id 替换下面的 "YOUR_KV_NAMESPACE_ID"
-# 3. 设置管理员密码：wrangler secret put ADMIN_PASSWORD
-# 4. 重新部署：wrangler deploy
-#
-# 如果使用 D1 版本，请参考 wrangler-d1.toml.example
+# 1. 创建 D1 数据库: wrangler d1 create gemini-pool-db
+# 2. 从输出中获取 database_id 并替换下方的值
+# 3. 设置管理员密码: wrangler secret put ADMIN_PASSWORD
+# 4. 部署: wrangler deploy
+# 注意: 数据库表会在首次运行时自动初始化
 # ============================================
 
-[[kv_namespaces]]
-binding = "API_TOKENS"
-id = "YOUR_KV_NAMESPACE_ID"  # 替换为你的 KV Namespace ID
+[[d1_databases]]
+binding = "DB"
+database_name = "gemini-pool-db"
+database_id = "3ab37eec-cb10-4bbc-9327-3ffed0d0aa34"  # 请替换为您的 D1 Database ID
 
 # 环境变量说明：
 # ADMIN_PASSWORD 必须通过以下方式设置（不能直接写在这里）：
 # 1. Cloudflare Dashboard: Workers → Settings → Variables → Add variable (选择"加密")
 # 2. CLI 命令: wrangler secret put ADMIN_PASSWORD
+
